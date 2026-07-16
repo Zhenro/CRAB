@@ -26,3 +26,4 @@ app.use((req, res) => {
 app.listen(PORT, () => {
   console.log(`Servidor MVP inicializado de forma segura en el puerto ${PORT}`);
 });
+ // Despliegue forzado con arquitectura desacoplada corregida
