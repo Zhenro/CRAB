@@ -1,0 +1,41 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'modules/activos/controllers/activos_controller.dart';
+import 'modules/activos/screens/scanner_screen.dart';
+
+void main() {
+  // Garantiza que los bindings nativos de Flutter (como la cámara) estén inicializados
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return MultiProvider(
+      providers: [
+        // Inyectamos el controlador de activos para que esté disponible en toda la App
+        ChangeNotifierProvider(create: (_) => ActivosController()),
+      ],
+      child: MaterialApp(
+        title: 'Control de Activos MVP',
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          primarySwatch: Colors.blue,
+          useMaterial3: true, // Habilitamos Material 3 para un diseño más moderno
+          appBarTheme: const AppBarTheme(
+            elevation: 0,
+            centerTitle: true,
+            backgroundColor: Colors.blueAccent,
+            foregroundColor: Colors.white,
+          ),
+        ),
+        // La pantalla con la que arranca la aplicación es directamente el Escáner
+        home: const ScannerScreen(),
+      ),
+    );
+  }
+}
