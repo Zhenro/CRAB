@@ -1,0 +1,304 @@
+import 'package:flutter/material.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:provider/provider.dart';
+import '../controllers/activos_controller.dart';
+import 'detalle_activo_screen.dart'; // Crearemos esta pantalla a continuación
+
+class ScannerScreen extends StatefulWidget {
+  const ScannerScreen({Key? key}) : super(key: key);
+
+  @override
+  State<ScannerScreen> createState() => _ScannerScreenState();
+}
+
+class _ScannerScreenState extends State<ScannerScreen> {
+  final MobileScannerController _scannerController = MobileScannerController(
+    detectionSpeed: DetectionSpeed.noDuplicates, // Evita lecturas dobles accidentales
+  );
+  bool _isProcessing = false;
+
+  @override
+  void dispose() {
+    _scannerController.dispose();
+    super.dispose();
+  }
+
+  void _onDetect(BarcodeCapture capture) async {
+    if (_isProcessing) return;
+
+    final List<Barcode> barcodes = capture.barcodes;
+    if (barcodes.isEmpty) return;
+
+    final String? codeValue = barcodes.first.rawValue;
+    if (codeValue == null || codeValue.isEmpty) return;
+
+    setState(() {
+      _isProcessing = true;
+    });
+
+    // Pausamos la cámara temporalmente para que no siga escaneando de fondo
+    _scannerController.stop();
+
+    final activosController = Provider.of<ActivosController>(context, listen: false);
+    
+    // Mostramos un loader en pantalla mientras despierta Render y consulta la BD
+    _showLoadingDialog();
+
+    final bool encontrado = await activosController.buscarActivoPorCodigo(codeValue);
+
+    // Quitamos el diálogo de carga
+    if (mounted) Navigator.of(context).pop();
+
+    if (encontrado) {
+      if (mounted) {
+        // Si el activo existe, navegamos a la pantalla de detalle/edición
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => DetalleActivoScreen(codigoEscaneado: codeValue),
+          ),
+        ).then((_) => _reiniciarEscaner());
+      }
+    } else {
+      if (mounted) {
+        // Si el activo NO existe o hubo error, mostramos las opciones
+        _showErrorOrRegisterDialog(codeValue, activosController.errorMessage);
+      }
+    }
+  }
+
+  void _reiniciarEscaner() {
+    setState(() {
+      _isProcessing = false;
+    });
+    _scannerController.start();
+  }
+
+  void _showLoadingDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const AlertDialog(
+        content: Row(
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(width: 20),
+            Expanded(
+              child: Text(
+                'Buscando activo...\n(Si el servidor estaba inactivo, esto puede tardar un momento)',
+                style: TextStyle(fontSize: 14),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showErrorOrRegisterDialog(String codigo, String? errorMsg) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.warning, color: Colors.amber),
+            SizedBox(width: 10),
+            Text('Resultado'),
+          ],
+        ),
+        content: Text(
+          errorMsg ?? 'El código "$codigo" no está registrado en el inventario.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _reiniciarEscaner();
+            },
+            child: const Text('Reintentar Escaneo'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              // TODO: Redireccionar al formulario de registro pasándole el código único
+              _reiniciarEscaner();
+            },
+            child: const Text('Registrar Nuevo'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Escaneo de Activos'),
+        backgroundColor: Colors.blueAccent,
+        actions: [
+          IconButton(
+            icon: ValueListenableBuilder(
+              valueListenable: _scannerController.torchState,
+              builder: (context, state, child) {
+                switch (state) {
+                  case TorchState.off:
+                    return const Icon(Icons.flash_off);
+                  case TorchState.on:
+                    return const Icon(Icons.flash_on);
+                }
+              },
+            ),
+            onPressed: () => _scannerController.toggleTorch(),
+          ),
+          IconButton(
+            icon: ValueListenableBuilder(
+              valueListenable: _scannerController.cameraFacingState,
+              builder: (context, state, child) {
+                switch (state) {
+                  case CameraFacing.front:
+                    return const Icon(Icons.camera_front);
+                  case CameraFacing.back:
+                    return const Icon(Icons.camera_rear);
+                }
+              },
+            ),
+            onPressed: () => _scannerController.switchCamera(),
+          ),
+        ],
+      ),
+      body: Stack(
+        children: [
+          // Lector de Cámara Nativa
+          MobileScanner(
+            controller: _scannerController,
+            onDetect: _onDetect,
+          ),
+          
+          // Máscara Visual (Caja de enfoque en el centro de la pantalla)
+          Positioned.fill(
+            child: Container(
+              decoration: ShapeDecoration(
+                shape: QrScannerOverlayShape(
+                  borderColor: Colors.blueAccent,
+                  borderRadius: 10,
+                  borderLength: 30,
+                  borderWidth: 10,
+                  cutOutSize: 250,
+                ),
+              ),
+            ),
+          ),
+          
+          const Positioned(
+            bottom: 40,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: Card(
+                color: Colors.black54,
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                  child: Text(
+                    'Alinea el código QR o de barras',
+                    style: TextStyle(color: Colors.white, fontSize: 16),
+                  ),
+                ),
+              ),
+            ),
+          )
+        ],
+      ),
+    );
+  }
+}
+
+// Pintor personalizado para crear el marco del visor (Overlay)
+class QrScannerOverlayShape extends ShapeBorder {
+  final Color borderColor;
+  final double borderWidth;
+  final double borderLength;
+  final double borderRadius;
+  final double cutOutSize;
+
+  QrScannerOverlayShape({
+    this.borderColor = Colors.white,
+    this.borderWidth = 1.0,
+    this.borderLength = 40.0,
+    this.borderRadius = 0.0,
+    this.cutOutSize = 250.0,
+  });
+
+  @override
+  EdgeInsetsGeometry get dimensions => EdgeInsets.zero;
+
+  @override
+  Path getInnerPath(Rect rect, {TextDirection? textDirection}) => Path();
+
+  @override
+  Path getOuterPath(Rect rect, {TextDirection? textDirection}) {
+    return Path()..addRect(rect);
+  }
+
+  @override
+  void paint(Canvas canvas, Rect rect, {TextDirection? textDirection}) {
+    final width = rect.width;
+    final height = rect.height;
+
+    final boxWidth = cutOutSize;
+    final boxHeight = cutOutSize;
+
+    final left = (width - boxWidth) / 2;
+    final top = (height - boxHeight) / 2;
+
+    final backgroundPaint = Paint()
+      ..color = Colors.black54
+      ..style = PaintingStyle.fill;
+
+    final borderPaint = Paint()
+      ..color = borderColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = borderWidth;
+
+    // Pintar fondo oscuro fuera del cuadro visor
+    canvas.drawPath(
+      Path.combine(
+        PathOp.difference,
+        Path()..addRect(rect),
+        Path()..addRRect(RRect.fromRectAndRadius(
+          Rect.fromLTWH(left, top, boxWidth, boxHeight),
+          Radius.circular(borderRadius),
+        )),
+      ),
+      backgroundPaint,
+    );
+
+    // Pintar esquinas del visor
+    final path = Path()
+      // Esquina Superior Izquierda
+      ..moveTo(left, top + borderLength)
+      ..lineTo(left, top + borderRadius)
+      ..arcToPoint(Offset(left + borderRadius, top), radius: Radius.circular(borderRadius))
+      ..lineTo(left + borderLength, top)
+      // Esquina Superior Derecha
+      ..moveTo(left + boxWidth - borderLength, top)
+      ..lineTo(left + boxWidth - borderRadius, top)
+      ..arcToPoint(Offset(left + boxWidth, top + borderRadius), radius: Radius.circular(borderRadius))
+      ..lineTo(left + boxWidth, top + borderLength)
+      // Esquina Inferior Derecha
+      ..moveTo(left + boxWidth, top + boxHeight - borderLength)
+      ..lineTo(left + boxWidth, top + boxHeight - borderRadius)
+      ..arcToPoint(Offset(left + boxWidth - borderRadius, top + boxHeight), radius: Radius.circular(borderRadius))
+      ..lineTo(left + boxWidth - borderLength, top + boxHeight)
+      // Esquina Inferior Izquierda
+      ..moveTo(left + borderLength, top + boxHeight)
+      ..lineTo(left + borderRadius, top + boxHeight)
+      ..arcToPoint(Offset(left, top + boxHeight - borderRadius), radius: Radius.circular(borderRadius))
+      ..lineTo(left, top + boxHeight - borderLength);
+
+    canvas.drawPath(path, borderPaint);
+  }
+
+  @override
+  ShapeBorder scale(double t) => QrScannerOverlayShape();
+}

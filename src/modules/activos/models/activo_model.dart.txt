@@ -1,0 +1,41 @@
+class Activo {
+  final int id;
+  final String codigoUnico;
+  final String nombre;
+  final String categoria;
+  final String estado;
+  final String? fotoUrl;
+  final int ubicacionId;
+  final int empleadoId;
+  final String ubicacionNombre;
+  final String empleadoNombre;
+
+  Activo({
+    required this.id,
+    required this.codigoUnico,
+    required this.nombre,
+    required this.categoria,
+    required this.estado,
+    this.fotoUrl,
+    required this.ubicacionId,
+    required this.empleadoId,
+    required this.ubicacionNombre,
+    required this.empleadoNombre,
+  });
+
+  // Mapeo seguro de JSON a Modelo de Dart
+  factory Activo.fromJson(Map<String, dynamic> json) {
+    return Activo(
+      id: json['id'],
+      codigoUnico: json['codigo_unico'],
+      nombre: json['nombre'],
+      categoria: json['categoria'],
+      estado: json['estado'],
+      fotoUrl: json['foto_url'],
+      ubicacionId: json['ubicacion_id'],
+      empleadoId: json['empleado_id'],
+      ubicacionNombre: json['ubicacion_nombre'] ?? 'Sin Ubicación',
+      empleadoNombre: json['empleado_nombre'] ?? 'Sin Responsable',
+    );
+  }
+}

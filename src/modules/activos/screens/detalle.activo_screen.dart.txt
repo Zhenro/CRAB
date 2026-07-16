@@ -1,0 +1,220 @@
+import os
+
+# Create the file for the detail screen
+os.makedirs("mvp_control_activos_mobile/lib/modules/activos/screens", exist_ok=True)
+
+detalle_activo_content = """import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:dio/dio.dart';
+import '../controllers/activos_controller.dart';
+import '../../../../core/api_client.dart';
+
+class DetalleActivoScreen extends StatefulWidget {
+  final String codigoEscaneado;
+
+  const DetalleActivoScreen({Key? key, required this.codigoEscaneado}) : super(key: key);
+
+  @override
+  State<DetalleActivoScreen> createState() => _DetalleActivoScreenState();
+}
+
+class _DetalleActivoScreenState extends State<DetalleActivoScreen> {
+  final ApiClient _apiClient = ApiClient();
+  List<dynamic> _historial = [];
+  bool _loadingHistorial = true;
+  String? _historialError;
+
+  @override
+  void initState() {
+    super.initState();
+    _cargarHistorial();
+  }
+
+  Future<void> _cargarHistorial() async {
+    final activo = Provider.of<ActivosController>(context, listen: false).activoActual;
+    if (activo == null) return;
+
+    try {
+      final response = await _apiClient.client.get('/activos/\${activo.id}/historial');
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        setState(() {
+          _historial = response.data['data'];
+          _loadingHistorial = false;
+        });
+      }
+    } on DioException catch (e) {
+      setState(() {
+        _historialError = 'No se pudo cargar el historial.';
+        _loadingHistorial = false;
+      });
+    }
+  }
+
+  Color _getColorEstado(String estado) {
+    switch (estado) {
+      case 'Activo':
+        return Colors.green;
+      case 'Mantenimiento':
+        return Colors.amber;
+      case 'De Baja':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = Provider.of<ActivosController>(context);
+    final activo = controller.activoActual;
+
+    if (activo == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Detalle de Activo')),
+        body: const Center(child: Text('No hay datos del activo.')),
+      );
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(activo.nombre),
+        backgroundColor: Colors.blueAccent,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Tarjeta de Información General
+            Card(
+              elevation: 4,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'CÓDIGO: \${activo.codigoUnico}',
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: _getColorEstado(activo.estado).withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: _getColorEstado(activo.estado)),
+                          ),
+                          child: Text(
+                            activo.estado,
+                            style: TextStyle(
+                              color: _getColorEstado(activo.estado),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Divider(height: 24),
+                    _buildInfoRow(Icons.category, 'Categoría', activo.category),
+                    _buildInfoRow(Icons.place, 'Ubicación', activo.ubicacionNombre),
+                    _buildInfoRow(Icons.person, 'Responsable', activo.empleadoNombre),
+                  ],
+                ),
+              ),
+            ),
+            
+            const SizedBox(height: 24),
+            const Text(
+              'Historial de Movimientos',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 10),
+
+            // Sección de Auditoría (Historial de Supabase)
+            if (_loadingHistorial)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(20.0),
+                  child: CircularProgressIndicator(),
+                ),
+              )
+            else if (_historialError != null)
+              Center(child: Text(_historialError!, style: const TextStyle(color: Colors.red)))
+            else if (_historial.isEmpty)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(20.0),
+                  child: Text('Este activo no tiene movimientos registrados.'),
+                ),
+              )
+            else
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: _historial.length,
+                itemBuilder: (context, index) {
+                  final item = _historial[index];
+                  final String fecha = DateTime.parse(item['creado_en']).toLocal().toString().substring(0, 16);
+                  return Card(
+                    margin: const EdgeInsets.symmetric(vertical: 6),
+                    child: ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: Colors.blueAccent.withOpacity(0.1),
+                        child: Icon(
+                          item['tipo'] == 'Cambio Estado' ? Icons.sync : Icons.assignment_turned_in,
+                          color: Colors.blueAccent,
+                        ),
+                      ),
+                      title: Text('\${item['tipo']}'),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (item['estado_nuevo'] != null)
+                            Text('Estado: \${item['estado_anterior']} ➔ \${item['estado_nuevo']}'),
+                          if (item['empleado_nuevo'] != null)
+                            Text('Responsable: \${item['empleado_nuevo']}'),
+                          if (item['ubicacion_nueva'] != null)
+                            Text('Ubicación: \${item['ubicacion_nueva']}'),
+                          const SizedBox(height: 4),
+                          Text(fecha, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6.0),
+      child: Row(
+        children: [
+          Icon(icon, color: Colors.blueAccent, size: 22),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+              Text(value, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+"""
+
+with open("mvp_control_activos_mobile/lib/modules/activos/screens/detalle_activo_screen.dart", "w", encoding="utf-8") as f:
+    f.write(detalle_activo_content)
+
+print("Detalle de Activo screen file generated successfully.")

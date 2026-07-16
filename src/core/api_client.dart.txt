@@ -1,0 +1,49 @@
+import 'package:dio/dio.dart';
+
+class ApiClient {
+  late final Dio _dio;
+  
+  // Reemplaza esta URL por tu dirección real de Render
+  static const String _baseUrl = 'https://crab-akdl.onrender.com/api';
+
+  ApiClient() {
+    _dio = Dio(
+      BaseOptions(
+        baseUrl: _baseUrl,
+        // 60 segundos de margen. Esencial para esperar a que el plan gratuito de Render despierte.
+        connectTimeout: const Duration(seconds: 60), 
+        receiveTimeout: const Duration(seconds: 30),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      ),
+    );
+
+    // Añadimos un Interceptor para loggear peticiones o inyectar tokens de seguridad en el futuro
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          print('--> SOLICITUD: ${options.method} ${options.uri}');
+          return handler.next(options);
+        },
+        onResponse: (response, handler) {
+          print('<-- RESPUESTA [${response.statusCode}]: ${response.data}');
+          return handler.next(response);
+        },
+        onError: (DioException e, handler) {
+          print('❌ ERROR API [${e.response?.statusCode}]: ${e.message}');
+          
+          // Capturamos específicamente el timeout para alertar a la UI que el servidor está despertando
+          if (e.type == DioExceptionType.connectionTimeout) {
+            print('⚠️ Alerta: El servidor gratuito de Render está tardando en despertar.');
+          }
+          return handler.next(e);
+        },
+      ),
+    );
+  }
+
+  // Getter para acceder a la instancia de Dio desde los controladores
+  Dio get client => _dio;
+}

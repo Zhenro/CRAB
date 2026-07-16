@@ -1,0 +1,55 @@
+import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
+import '../../../core/api_client.dart';
+import '../models/activo_model.dart';
+
+class ActivosController extends ChangeNotifier {
+  final ApiClient _apiClient = ApiClient();
+  
+  Activo? _activoActual;
+  bool _isLoading = false;
+  String? _errorMessage;
+
+  Activo? get activoActual => _activoActual;
+  bool get isLoading => _isLoading;
+  String? get errorMessage => _errorMessage;
+
+  // Buscar un activo por su código QR/Barras escaneado
+  Future<bool> buscarActivoPorCodigo(String codigo) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final response = await _apiClient.client.get('/activos/scan/$codigo');
+      
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        _activoActual = Activo.fromJson(response.data['data']);
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      }
+      
+      _errorMessage = 'No se encontró el activo escaneado.';
+      _isLoading = false;
+      notifyListeners();
+      return false;
+
+    } on DioException catch (e) {
+      _isLoading = false;
+      if (e.type == DioExceptionType.connectionTimeout) {
+        _errorMessage = 'El servidor está despertando de su suspensión. Por favor, intenta de nuevo en unos segundos.';
+      } else {
+        _errorMessage = e.response?.data['message'] ?? 'Error de conexión con la oficina virtual.';
+      }
+      notifyListeners();
+      return false;
+    }
+  }
+
+  void limpiarBúsqueda() {
+    _activoActual = null;
+    _errorMessage = null;
+    notifyListeners();
+  }
+}
