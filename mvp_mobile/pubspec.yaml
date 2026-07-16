@@ -11,7 +11,7 @@ dependencies:
     sdk: flutter
 
   # Cliente HTTP potente con soporte de interceptores y timeouts
-  dio: ^5.5.0.1
+  dio: ^5.5.0
   
   # Lector de códigos de barra y QR rápido y nativo usando la cámara
   mobile_scanner: ^5.1.1
