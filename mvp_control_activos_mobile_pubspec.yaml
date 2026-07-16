@@ -1,0 +1,28 @@
+name: mvp_control_activos_mobile
+description: "MVP de Control de Activos e Inventario Optimizado para Servidores Gratuitos"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Cliente HTTP potente con soporte de interceptores y timeouts
+  dio: ^5.5.0.1
+  
+  # Lector de códigos de barra y QR rápido y nativo usando la cámara
+  mobile_scanner: ^5.1.1
+  
+  # Gestión de estado minimalista y reactiva (ideal para MVPs)
+  provider: ^6.1.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
