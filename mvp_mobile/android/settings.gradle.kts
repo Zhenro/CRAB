@@ -18,9 +18,18 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        maven { url = uri("http://mirrors.huaweicloud.com/repository/google") }
-        maven { url = uri("http://mirrors.huaweicloud.com/repository/maven") }
-        maven { url = uri("http://mirrors.huaweicloud.com/repository/flutter/") }
+        maven { 
+            url = uri("http://mirrors.huaweicloud.com/repository/google/") 
+            isAllowInsecureProtocol = true 
+        }
+        maven { 
+            url = uri("http://mirrors.huaweicloud.com/repository/maven/") 
+            isAllowInsecureProtocol = true 
+        }
+        maven { 
+            url = uri("http://mirrors.huaweicloud.com/repository/flutter/") 
+            isAllowInsecureProtocol = true 
+        }
     }
 }
 
