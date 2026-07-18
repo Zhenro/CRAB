@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd mvp_mobile &amp;&amp; flutter run --verbose 2&gt;&amp;1 | Select-Object -First 100)",
+      "Bash(Set-Location C:\\Trusted\\CRAB-Github\\CRAB\\mvp_mobile; flutter build apk --debug)",
+      "Bash(cd C:\\Trusted\\CRAB-Github\\CRAB\\mvp_mobile\nflutter build apk --debug)",
+      "Bash(cd C:\\Trusted\\CRAB-Github\\CRAB\\mvp_mobile\\android\n.\\gradlew assembleDebug)",
+      "Bash(C:\\Trusted\\CRAB-Github\\CRAB\\mvp_mobile\\android\\gradlew.bat -p C:\\Trusted\\CRAB-Github\\CRAB\\mvp_mobile\\android assembleDeb…)",
+      "Bash(C:\\Trusted\\CRAB-Github\\CRAB\\mvp_mobile\\android\\gradlew.bat -p C:\\Trusted\\CRAB-Github\\CRAB\\mvp_mobile\\android clean assem…)",
+      "Bash(C:\\Trusted\\CRAB-Github\\CRAB\\mvp_mobile\\android\\gradlew.bat -p C:\\Trusted\\CRAB-Github\\CRAB\\mvp_mobile\\android clean assem…)",
+      "Bash(C:\\Trusted\\CRAB-Github\\CRAB\\mvp_mobile\\android\\gradlew.bat -p C:\\Trusted\\CRAB-Github\\CRAB\\mvp_mobile\\android clean assem…)",
+      "Bash(C:\\Trusted\\CRAB-Github\\CRAB\\mvp_mobile\\android\\gradlew.bat -p C:\\Trusted\\CRAB-Github\\CRAB\\mvp_mobile\\android clean assem…)",
+      "Bash(dir \"C:\\Users\\Andres Fermin\\.gradle\\wrapper\\dists\" /B)",
+      "Bash(dir \"C:\\Users\\Andres Fermin\\.gradle\\wrapper\\dists\\gradle-8.5-all\" /B /S)",
+      "Bash(dir \"C:\\Users\\Andres Fermin\\.gradle\\wrapper\\dists\\gradle-8.5-all\")",
+      "Bash(dir \"C:\\Users\\Andres Fermin\\.gradle\\wrapper\\dists\\gradle-8.5-all\\3zlzzgtsutfj0pbojr50n2l7z\" /B)",
+      "Bash(dir \"C:\\Users\\Andres Fermin\\.gradle\\wrapper\\dists\\gradle-8.5-all\\4kvjdqpncivax78qww5da44ox\" /B)",
+      "Bash(C:\\Trusted\\CRAB-Github\\CRAB\\mvp_mobile\\android\\gradlew.bat --stop)",
+      "Bash(rmdir /S /Q \"C:\\Users\\Andres Fermin\\.gradle\\wrapper\\dists\\gradle-8.5-all\\3zlzzgtsutfj0pbojr50n2l7z\")",
+      "Bash(rmdir /S /Q \"C:\\Users\\Andres Fermin\\.gradle\\wrapper\\dists\\gradle-8.5-all\\g62k76my6qeh7lwy5n326idx\")",
+      "Bash(taskkill /F /IM java.exe)",
+      "Bash(\"C:\\Users\\Andres Fermin\\.gradle\\wrapper\\dists\\gradle-8.5-all\\4kvjdqpncivax78qww5da44ox\\gradle-8.5\\bin\\gradle.bat\" -p C:\\…)",
+      "Bash(\"C:\\Users\\Andres Fermin\\.gradle\\wrapper\\dists\\gradle-8.5-all\\4kvjdqpncivax78qww5da44ox\\gradle-8.5\\bin\\gradle.bat\" -p C:\\…)",
+      "Bash(\"C:\\Users\\Andres Fermin\\.gradle\\wrapper\\dists\\gradle-8.5-all\\4kvjdqpncivax78qww5da44ox\\gradle-8.5\\bin\\gradle.bat\" -p C:\\…)",
+      "Bash(\"C:\\Users\\Andres Fermin\\.gradle\\wrapper\\dists\\gradle-8.5-all\\4kvjdqpncivax78qww5da44ox\\gradle-8.5\\bin\\gradle.bat\" -p C:\\…)",
+      "Bash(\"C:\\Users\\Andres Fermin\\.gradle\\wrapper\\dists\\gradle-8.5-all\\4kvjdqpncivax78qww5da44ox\\gradle-8.5\\bin\\gradle.bat\" -p C:\\…)",
+      "Bash(cd C:\\Trusted\\CRAB-Github\\CRAB\\mvp_mobile\nflutter --version)",
+      "Bash(C:\\Trusted\\CRAB-Github\\CRAB\\mvp_mobile\\android\\gradlew.bat -p C:\\Trusted\\CRAB-Github\\CRAB\\mvp_mobile\\android assembleDeb…)"
+    ]
+  }
+}
