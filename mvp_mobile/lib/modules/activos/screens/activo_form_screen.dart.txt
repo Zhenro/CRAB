@@ -1,0 +1,206 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../controllers/activos_controller.dart';
+
+class ActivoFormScreen extends StatefulWidget {
+  final String codigoQr;
+  final Map<String, dynamic>? activoExistente; // Si es null, estamos registrando uno nuevo
+
+  const ActivoFormScreen({
+    Key? key,
+    required this.codigoQr,
+    this.activoExistente,
+  }) : super(key: key);
+
+  @override
+  State<ActivoFormScreen> createState() => _ActivoFormScreenState();
+}
+
+class _ActivoFormScreenState extends State<ActivoFormScreen> {
+  final _formKey = GlobalKey<FormState>();
+  
+  late TextEditingController _nombreController;
+  late TextEditingController _descripcionController;
+  late TextEditingController _responsableController;
+  late String _estadoSeleccionado;
+
+  final List<String> _estados = ['Activo', 'Mantenimiento', 'De Baja'];
+
+  @override
+  void initState() {
+    super.initState();
+    // Inicializamos controladores con datos existentes si es edición, o vacíos si es registro nuevo
+    _nombreController = TextEditingController(text: widget.activoExistente?['nombre'] ?? '');
+    _descripcionController = TextEditingController(text: widget.activoExistente?['descripcion'] ?? '');
+    _responsableController = TextEditingController(text: widget.activoExistente?['responsable'] ?? '');
+    
+    // Validamos que el estado exista en la lista o asignamos por defecto 'Activo'
+    String estadoInicial = widget.activoExistente?['estado'] ?? 'Activo';
+    _estadoSeleccionado = _estados.contains(estadoInicial) ? estadoInicial : 'Activo';
+  }
+
+  @override
+  void dispose() {
+    _nombreController.dispose();
+    _descripcionController.dispose();
+    _responsableController.dispose();
+    super.dispose();
+  }
+
+  void _guardarFormulario() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    final controller = Provider.of<ActivosController>(context, listen: false);
+    
+    final datosActivo = {
+      'codigo_qr': widget.codigoQr,
+      'nombre': _nombreController.text.trim(),
+      'descripcion': _descripcionController.text.trim(),
+      'responsable': _responsableController.text.trim(),
+      'estado': _estadoSeleccionado,
+    };
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Procesando datos en el servidor...')),
+    );
+
+    try {
+      bool exito;
+      if (widget.activoExistente == null) {
+        // Lógica para registrar en la API
+        exito = await controller.registrarActivo(datosActivo);
+      } else {
+        // Lógica para actualizar en la API
+        exito = await controller.actualizarActivo(widget.activoExistente!['id'], datosActivo);
+      }
+
+      if (exito && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('¡Guardado exitosamente en Supabase!')),
+        );
+        // Regresamos a la pantalla principal limpiando el flujo
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      } else if (mounted) {
+        throw Exception('El servidor rechazó la operación.');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al guardar el activo: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    bool esEdicion = widget.activoExistente != null;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(esEdicion ? 'Editar Activo' : 'Registrar Activo'),
+        backgroundColor: esEdicion ? Colors.orangeAccent : Colors.blueAccent,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Indicador visual estático del QR capturado
+              Card(
+                color: Colors.grey[200],
+                child: Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.qr_code_2, size: 28, color: Colors.black54),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Código QR: ${widget.codigoQr}',
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              
+              // Input Nombre
+              TextFormField(
+                controller: _nombreController,
+                decoration: const InputDecoration(
+                  labelText: 'Nombre del Activo',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.devices),
+                ),
+                validator: (val) => val == null || val.isEmpty ? 'Este campo es obligatorio' : null,
+              ),
+              const SizedBox(height: 16),
+
+              // Input Descripción
+              TextFormField(
+                controller: _descripcionController,
+                maxLines: 3,
+                decoration: const InputDecoration(
+                  labelText: 'Descripción / Especificaciones',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.description),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Input Responsable
+              TextFormField(
+                controller: _responsableController,
+                decoration: const InputDecoration(
+                  labelText: 'Responsable / Asignado a',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.person),
+                ),
+                validator: (val) => val == null || val.isEmpty ? 'Asigna un responsable' : null,
+              ),
+              const SizedBox(height: 16),
+
+              // Dropdown Selección de Estado
+              DropdownButtonFormField<String>(
+                value: _estadoSeleccionado,
+                items: _estados.map((estado) {
+                  return DropdownMenuItem(value: estado, child: Text(estado));
+                }).toList(),
+                onChanged: (nuevoEstado) {
+                  if (nuevoEstado != null) {
+                    setState(() {
+                      _estadoSeleccionado = nuevoEstado;
+                    });
+                  }
+                },
+                decoration: const InputDecoration(
+                  labelText: 'Estado Operativo',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.info_outline),
+                ),
+              ),
+              const SizedBox(height: 32),
+
+              // Botón de Envío
+              ElevatedButton.icon(
+                onPressed: _guardarFormulario,
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  backgroundColor: esEdicion ? Colors.orange : Colors.blue,
+                  foregroundColor: Colors.white,
+                ),
+                icon: const Icon(Icons.save),
+                label: Text(esEdicion ? 'Actualizar Cambios' : 'Registrar en Inventario'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
