@@ -1,5 +1,5 @@
 pluginManagement {
-    val flutterSdkPath = "C:/flutter" // Confirma que esta es tu ruta correcta de Flutter
+    val flutterSdkPath = "C:/flutter"
     includeBuild("$flutterSdkPath/packages/flutter_tools/gradle")
     
     repositories {
